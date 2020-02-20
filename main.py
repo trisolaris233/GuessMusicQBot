@@ -7,6 +7,7 @@ from urllib.parse import parse_qs
 import re
 from pydub import AudioSegment
 import argparse
+import random
 
 '''
 usage:
@@ -44,7 +45,25 @@ def init_parser():
     parser.add_argument("-e","--end",help="终止时间")
     parser.add_argument("answer",help="答案")
     parser.add_argument("-c","--choices",dest="choices",nargs='+')
-    
+
+
+def read_config():
+    count = 0
+    try:
+        with open("cofig.txt", "r+") as f:
+            count = eval(f.read())
+    except FileNotFoundError:
+        write_config(0)
+        count = 0
+    return count
+
+def write_config(count):
+    with open("config.txt", "w+") as f:
+        f.write(str(count))
+
+def update_config():
+    count = read_config()
+    write_config(count+1)
 
 
 '''
@@ -88,6 +107,7 @@ def calculate_time(arg):
         if e == "sec" or e =="s":
             sec_start = eval(tmp)*1000;
         tmp = e
+
     return min_start+sec_start;
 '''
 @description: 
@@ -104,13 +124,12 @@ def parse_time_and_duration(start, end):
 @param {type} 
 @return: None.
 '''
-def download_music(id):
+def download_music(id, filename):
     res = requests.get("https://v1.hitokoto.cn/nm/url/{}".format(id))
     res_data = json.loads(res.text)
     music_url = res_data['data'][0]['url']
     print(music_url)
     music = requests.get(music_url)
-    filename = "{}.mp3".format(id)
     with open(filename, "wb") as f:
         f.write(music.content)
         f.close()
@@ -134,14 +153,61 @@ def clip_music(path, start, end, filename):
 @param {type} 
 @return: None.
 '''
-def generate_html(music_url, choices):
-    pass
+def generate_html(music_url, answer, choices, filename):
+    s = ""
+    li_str = ""
+    with open("template_html.html",mode="r",encoding="UTF-8") as f:
+        s = f.read();
+        li_str = "<div style=\"text-align:center;\">"
+        i = 0
+        case = random.randint(0, len(choices))
+        for choice in choices:
+            title = choice
+            choice_html = ""
+            if i == case:
+                choice_html = "<label><input type=\"radio\" name=\"title\" value=\"{}\">{}</label></br>".format(i,answer)
+                i = i + 1
+            choice_html = choice_html + "<label><input type=\"radio\" name=\"title\" value=\"{}\">{}</label></br>".format(i,title)
+            li_str = "{}{}".format(li_str,choice_html)
+            i = i + 1
 
+        li_str = "{}{}".format(li_str,"<button type=\"button\" onclick=\"judge()\">Submit</button>")
+
+    js_code = '''
+         function judge(){{
+            var answer = {answer}
+            var radios = document.getElementsByName("title");
+            for(var i=0;i<radios.length;i++){{
+                if(radios[i].checked == true){{
+                    if (radios[i].value==answer){{
+                        alert(\"You got it!\");
+                    }} else {{
+                        alert(\"You get the wrong answer!\");
+                    }}
+                    break;
+                }} 
+            }}
+        }}
+
+    '''.format(answer=case)
+    
+    with open(filename, mode="w+", encoding="UTF-8") as f:
+        f.write(s.format(music_url,li_str,js_code))
+
+
+def main_process():
+    music_id = parse_share_url(args.link)
+    download_music(music_id)
+    clip_music("{}.mp3".format(music_id),calculate_time(args.start),calculate_time(args.end),"{}_.mp3".format(music_id))
 
 if __name__ == "__main__":
     init_parser()
     args = parser.parse_args()
-
     music_id = parse_share_url(args.link)
-    download_music(music_id)
-    clip_music("{}.mp3".format(music_id),calculate_time(args.start),calculate_time(args.end),"{}_.mp3".format(music_id))
+    count = read_config()
+    download_music(music_id, "{}.mp3".format(count))
+    clip_music("{}.mp3".format(count),calculate_time(args.start),calculate_time(args.end),"{}_.mp3".format(count))
+    generate_html("{}_.mp3".format(count),args.answer,args.choices,"{}.html".format(count))
+    
+    
+    
