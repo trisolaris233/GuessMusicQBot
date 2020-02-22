@@ -1,2 +1,5 @@
-# -Questions-And-Answers-
-据说description不能为空
+# GuessMusicQBot
+
+
+## 介绍
+基于酷Q HTTP API做的猜歌名游戏
