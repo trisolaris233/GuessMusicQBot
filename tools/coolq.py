@@ -1,4 +1,6 @@
 import requests
+import os
+import shutil
 
 
 def send_group_voice_msg(groupid, filename, coolq_record_dir):
@@ -15,13 +17,17 @@ def send_group_voice_msg(groupid, filename, coolq_record_dir):
 
 
 
-def send_qqgroup_msg(groupid, msg):
+def send_group_msg(group_id, msg):
     playload = {
-      'group_id':"{}".format(groupid),
+      'group_id':"{}".format(group_id),
       'message':msg,
       'auto_escape':'false'
     }
-    res=requests.get("http://localhost:5700/send_group_msg",params=playload)
+    requests.get("http://localhost:5700/send_group_msg",params=playload)
+
+
+def at_and_say(target_user_id, group_id, msg):
+  send_group_msg(group_id, "[CQ:at,qq={}] {}".format(target_user_id, msg))
 
 def send_private_msg(user_id, msg):
     playload = {

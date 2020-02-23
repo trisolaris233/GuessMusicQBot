@@ -81,7 +81,7 @@ def get_track_count():
     c = conn.cursor();
 
     c.execute("SELECT COUNT(*) FROM TRACKS;")
-    return c.fetchall()[0][0]
+    return c.fetchone()[0]
 
 def get_current_max_id():
     conn = sqlite3.connect(track_db_path)
@@ -135,7 +135,7 @@ def import_playlist(id, user_id=0, group_id=0, explain=''):
     conn.commit()
     conn.close()
 
-    return (max_id + 1, max_id + len(tracks))
+    return (max_id + 1, len(tracks))
 
 
 def remove_song_with_id(start_id, end_id=-1, user_id=0, group_id=0):
@@ -163,6 +163,14 @@ def search_song_with_name(name, end_id=-1, user_id=0, group_id=0):
     pass
 
 
+def search_song_with_track_id(track_id):
+    conn = sqlite3.connect(track_db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM TRACKS WHERE TRACK_ID=?",(track_id,))
+    return cursor.fetchall()
+
+
 def search_song_with_id(start_id, end_id=-1, user_id=0, group_id=0):
     conn = sqlite3.connect(track_db_path)
     cursor = conn.cursor()
@@ -174,9 +182,9 @@ def search_song_with_id(start_id, end_id=-1, user_id=0, group_id=0):
     else:
         cursor.execute(str_sql+";",(start_id,))
 
+    res = cursor.fetchall()
     conn.close()
-
-    return cursor.fetchall()
+    return res
 
 def output_track_list(list_of_tracks):
     if not list_of_tracks:
@@ -213,7 +221,7 @@ def import_song(id, user_id =0, group_id=0, explain=''):
     conn.commit()
     conn.close()
 
-    return max_id + 1
+    return (max_id + 1,1)
 
 
 def import_from_url(url, user_id=0,group_id=0, explain='' ):
@@ -224,6 +232,7 @@ def import_from_url(url, user_id=0,group_id=0, explain='' ):
 
     # 导入歌单
     if status_value == 1:
-        import_playlist(rev[1], user_id, group_id, explain)
+        return import_playlist(rev[1], user_id, group_id, explain)
     elif status_value == 2:
-        import_song(rev[1], user_id, group_id, explain)
+        return import_song(rev[1], user_id, group_id, explain)
+    return None

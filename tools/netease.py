@@ -25,9 +25,11 @@ def parse_netease_share_url(url):
         return (0,)
 
     query_dict = parse_qs(query)
-
-    real_path = str.lower(path[1:])
-    print(real_path )
+    s = url.split('/')[-1]
+    real_path = str.lower(s[:s.index('?')])
+    print(real_path)
+    # real_path = str.lower(url.split('/')[-1][:])
+    # print(real_path )
     if (real_path == "playlist"):
         return (1, query_dict['id'][0])
     elif (real_path == "song"):
