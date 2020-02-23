@@ -138,14 +138,17 @@ def import_playlist(id, user_id=0, group_id=0, explain=''):
     return (max_id + 1, len(tracks))
 
 
-def remove_song_with_id(start_id, end_id=-1, user_id=0, group_id=0):
+def remove_track_with_id(start_id, end_id=-1, user_id=0, group_id=0):
+    res = search_song_with_id(start_id, end_id, user_id, group_id)
     conn = sqlite3.connect(track_db_path)
     cursor = conn.cursor()
+    
 
     operation_range = 1
     str_sql = "DELETE FROM TRACKS WHERE ID >=?"
-    if end_id != -1 and end_id > start_id:
-        str_sql += "AND ID <= ?;"
+    if end_id != -1 and end_id >= start_id:
+        str_sql += " AND ID <= ?;"
+        print(str_sql)
         cursor.execute(str_sql, (start_id, end_id))
         operation_range = end_id - start_id + 1
     else:
@@ -155,12 +158,28 @@ def remove_song_with_id(start_id, end_id=-1, user_id=0, group_id=0):
     conn.close()
 
     update_operation(1, start_id, operation_range, user_id, group_id)
-
-def remove_song_with_id(name, user_id=0,group_id=0):
-    pass
+    return res
 
 def search_song_with_name(name, end_id=-1, user_id=0, group_id=0):
-    pass
+    conn = sqlite3.connect(track_db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM TRACKS WHERE NAME LIKE ?;",('%' + name + '%',))
+    return cursor.fetchall()
+
+def search_song_with_artist_name(artist_name, end_id=-1, user_id=0, group_id=0):
+    conn = sqlite3.connect(track_db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM TRACKS WHERE ARTIST_NAME LIKE ?;",('%' + artist_name + '%',))
+    return cursor.fetchall()
+
+def search_song_with_album_name(album_name, end_id=-1, user_id=0, group_id=0):
+    conn = sqlite3.connect(track_db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM TRACKS WHERE ALBUM_NAME LIKE ?;",('%' + album_name + '%',))
+    return cursor.fetchall()
 
 
 def search_song_with_track_id(track_id):
@@ -176,7 +195,7 @@ def search_song_with_id(start_id, end_id=-1, user_id=0, group_id=0):
     cursor = conn.cursor()
 
     str_sql = "SELECT * FROM TRACKS WHERE ID >= ?"
-    if end_id != -1 and end_id > start_id:
+    if end_id != -1 and end_id >= start_id:
         str_sql += "AND ID <= ?;"
         cursor.execute(str_sql, (start_id, end_id))
     else:
@@ -188,24 +207,21 @@ def search_song_with_id(start_id, end_id=-1, user_id=0, group_id=0):
 
 def output_track_list(list_of_tracks):
     if not list_of_tracks:
-        return
+        return "no TRACKS"
     length = len(list_of_tracks)
     msg = ""
     if length > 8:
         msg = "The list includes {} tracks.".format(length)
     else:
         for track in list_of_tracks:
-            msg += track[1] + '\n'
+            msg += '{} -'.format(track[0]) + track[1] + ' - {}\n'.format(track[2])
     return msg
 
 
 def import_song(id, user_id =0, group_id=0, explain=''):
     obj = netease.get_detail(id)
-    print(id)
-    print("????")
     if not obj:
         return 0
-    print("????")
 
     conn = sqlite3.connect(track_db_path)
     c = conn.cursor();
@@ -227,8 +243,6 @@ def import_song(id, user_id =0, group_id=0, explain=''):
 def import_from_url(url, user_id=0,group_id=0, explain='' ):
     rev = netease.parse_netease_share_url(url)
     status_value = rev[0]
-
-    print(status_value  )
 
     # 导入歌单
     if status_value == 1:

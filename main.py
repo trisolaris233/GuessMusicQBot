@@ -80,25 +80,10 @@ def treat_group_msg(post_msg):
 
     res = parse_msg(msg)
     
-
-    print("try")
-    print(res)
-    config.CALL_COMMAND[res[0]](res[1], post_msg)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    try:
+        config.CALL_COMMAND[res[0]](res[1], post_msg)
+    except KeyError as e:
+        pass
 
 
 app = Flask(__name__)
@@ -108,7 +93,6 @@ init_database()
 
 @app.route('/watch',methods=['POST'])
 def watch():
-    print(request)
     post_msg = get_post_msg(request)
 
     if is_group_msg(post_msg):

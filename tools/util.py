@@ -1,6 +1,7 @@
 import tools.track as track
 import sqlite3
 import json
+import re
 
 class User:
 	def __init__(self, user_id, group_id, permission, game_played=0, wins=0, id=0):
@@ -73,10 +74,7 @@ def get_user_info(user_id, group_id)->User:
 	c = cursor.execute("SELECT * FROM USERSINFO WHERE USER_ID=? AND GROUP_ID=?;",(user_id, group_id))
 	res = c.fetchall()
 	if len(res) == 0:
-		r = reg_user(user_id, group_id)
-		if r == 0:
-			return None
-		return User(user_id, group_id, 0, 0, 0, r)
+		return None
 	return User(res[0][1], res[0][2], res[0][3], res[0][4], res[0][5], res[0][0])
 
 

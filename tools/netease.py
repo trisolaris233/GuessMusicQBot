@@ -3,6 +3,7 @@ import requests
 from pydub import AudioSegment
 import json
 import os
+import re
 
 
 music_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "music")
@@ -16,24 +17,21 @@ class Track:
         self.duration_time = duration_time
         self.download_url = download_url
 
+
+
 # 传入歌单url或者歌曲url 返回对应的id
 def parse_netease_share_url(url):
-    res = urlparse(url)
-    query = res.query
-    path = res.path
-    if not query or not path:
-        return (0,)
-
-    query_dict = parse_qs(query)
-    s = url.split('/')[-1]
-    real_path = str.lower(s[:s.index('?')])
-    print(real_path)
-    # real_path = str.lower(url.split('/')[-1][:])
-    # print(real_path )
+    prog = re.compile("https?://music.163.com(/#)?/(song|playlist)(\\?id=|/)([0-9]+)")
+    groups = prog.search(url).groups()
+    print("groups = ",groups)
+    if not groups:
+        return (0, )
+    
+    real_path = groups[1].lower()
     if (real_path == "playlist"):
-        return (1, query_dict['id'][0])
+        return (1, int(groups[-1]))
     elif (real_path == "song"):
-        return (2, query_dict['id'][0])
+        return (2, int(groups[-1]))
 
     return (0,)
 
@@ -48,10 +46,10 @@ def get_detail(id):
         track_id = data['id']
         album_name = data['al']['name']
         duration_time = data['dt']
-        artist_name = [artist['name'] for artist in data['ar']]
+        artist_name = ','.join([artist['name'] for artist in data['ar']])
         download_url = get_download_url(id)
 
-        return Track(track_id,name,json.dumps(artist_name),album_name,duration_time,download_url)
+        return Track(track_id,name,artist_name,album_name,duration_time,download_url)
     except Exception as e:
         print(e)
         return None
