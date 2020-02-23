@@ -9,13 +9,12 @@ import re
 music_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "music")
 
 class Track:
-    def __init__(self, track_id, name, artist_name, album_name, duration_time, download_url):
+    def __init__(self, track_id, name, artist_name, album_name, duration_time):
         self.track_id = track_id
         self.name = name
         self.artist_name = artist_name
         self.album_name = album_name
         self.duration_time = duration_time
-        self.download_url = download_url
 
 
 
@@ -37,23 +36,19 @@ def parse_netease_share_url(url):
 
 def get_detail(id):
     try:
-        print(id)
         res = requests.get("https://v1.hitokoto.cn/nm/detail/{}".format(id))
         res_data = json.loads(res.text)
-        print(res_data)
         data = res_data['songs'][0]
         name = data['name']
         track_id = data['id']
         album_name = data['al']['name']
         duration_time = data['dt']
         artist_name = ','.join([artist['name'] for artist in data['ar']])
-        download_url = get_download_url(id)
 
-        return Track(track_id,name,artist_name,album_name,duration_time,download_url)
+        return Track(track_id,name,artist_name,album_name,duration_time)
     except Exception as e:
         print(e)
         return None
-
 
 def get_download_url(id):
     try:

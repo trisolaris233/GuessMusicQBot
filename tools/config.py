@@ -3,7 +3,28 @@ import tools.netease
 from tools.coolq import *
 from tools.util import *
 
+def guess_checker(msg):
+	if msg.startswith("guess"):
+		return 0
+	return -1
 
+def parse_guess(msg):
+	return [msg[:5], msg[6:]]
+
+
+def reg(args, post_msg):
+	user_id = post_msg['user_id']
+	group_id = post_msg['group_id']
+
+	if get_user_info(user_id, group_id):
+		at_and_say(user_id, group_id, "You've already registered")
+		return
+
+	res = reg_user(user_id, group_id)
+	if res == 0:
+		at_and_say(user_id, group_id, "Registeration Failed: UNKNOWN ERROR")
+		return
+	at_and_say(user_id, group_id, "Registeration Successful: Your ID:{}".format(res))
 
 def start(args, post_msg):
 	user_id = post_msg['user_id']
@@ -24,7 +45,9 @@ def start(args, post_msg):
 		res = establish_game(user_id, group_id, mode)
 
 	if res == 1:
+		start_game(group_id)
 		at_and_say(user_id, group_id, "You have estabished a *NEW GAME*!")
+		
 	elif res == 0:
 		at_and_say(user_id, group_id, "Failed to create a GAME: another GAME is running!")
 
@@ -51,6 +74,16 @@ def info(args, post_msg):
 			at_and_say(user_id, group_id, "There are {} tracks avail".format(track.get_track_count()))
 		elif lower_str == "game" or lower_str == "games":
 			pass
+		elif lower_str == "cur" or lower_str == "cursor":
+			res = get_cursor_range()
+			length = len(res)
+
+			if length == 0:
+				at_and_say(user_id, group_id, "cursor ranges all")
+			elif length < 8:
+				at_and_say(user_id, group_id, json.dumps(res))
+			else:
+				at_and_say(user_id, group_id, "There're {} tracks in cursor's range.".format(length))
 		elif lower_str == "db":
 			pass
 		elif lower_str.isnumeric():
@@ -62,8 +95,8 @@ def info(args, post_msg):
 		user = get_user_info(user_id, group_id)
 		if not user:
 			at_and_say(user_id, group_id, "Failed to get user infomation: *404 NOT FOUND*")
+			return
 		at_and_say(user_id, group_id, user.tostring())
-
 
 def insert(args, post_msg):
 	user_id = post_msg['user_id']
@@ -87,15 +120,6 @@ def insert(args, post_msg):
 	else:
 		at_and_say(user_id, group_id, "Argument ERROR: too less argument")
 
-'''
-关于search的模式 有以下几种
-0 按id搜索
-1 按track id搜索
-2 按name搜索
-3 按artist搜索
-4 按album搜索
-5 按插入者搜索
-'''
 def search(args, post_msg):
 	user_id = post_msg['user_id']
 	group_id = post_msg['group_id']
@@ -115,7 +139,8 @@ def search(args, post_msg):
 			Usage: ?srh Mode Field1 [Fields...]
 			Mode:
 			0 Search With ID
-			1 Search With Name of Tracks
+			1 Search With Track ID, which is known in url
+			2 Search With Name of Tracks
 			3 Search With Name of Artist(s)
 			4 Search With Name of Ablum
 			5 Search With QQ of who insert the track*(not supported yet)
@@ -203,7 +228,6 @@ def search(args, post_msg):
 	# 	res = track.search_song_with_operator(int(args[1]))
 	# 	at_and_say(user_id, group_id, "\n"+track.output_track_list(res))
 
-
 def rm(args, post_msg):
 	user_id = post_msg['user_id']
 	group_id = post_msg['group_id']
@@ -232,14 +256,74 @@ def rm(args, post_msg):
 		at_and_say(user_id, group_id, "Argument Error: Invalid argument")
 		return
 
+def guess(args, post_msg):
+	user_id = post_msg['user_id']
+	group_id = post_msg['group_id']
+	players = get_game_current_member_list(group_id)
+	if not players:
+		return
+	if not user_id in players:
+		join_in_game(user_id, group_id)
+
+	gamedata = get_games_established(group_id)[0]
+	track_id = gamedata[4]
+	track_info = track.search_song_with_track_id(track_id)[0]
+	key_name = track_info[1].lower()
+	key_artist_name = track_info[2].lower()
+	key_album_name = track_info[3].lower()
+
+	if key_name == args:
+		at_and_say(user_id, group_id, "Perfect match!")
+		update_player_info(user_id, group_id)
+		end_game(group_id)
+	elif args in key_name:
+		at_and_say(user_id, group_id, "You matched part of it!")
+
+	elif args == key_artist_name:
+		at_and_say(user_id, group_id, "you matched artist of it!")
+
+	elif args in key_artist_name:
+		at_and_say(user_id, group_id, "You matched part of its artist's name")
+
+	else:
+		at_and_say(user_id, group_id, "Wrong Answer, try again")
+
+def chper(args, post_msg):
+	user_id = post_msg['user_id']
+	group_id = post_msg['group_id']
+
+	target_id = args[0]
+	permission = args[1]
+
+	user = get_user_info(user_id, group_id)
+	current_per = user.permission
+	target = get_user_info(target_id, group_id)
+	if not target:
+		at_and_say(user_id, group_id, "Failed to change PERMISSION: unregistered target")
+		return
+	if int(permission) < current_per:
+		change_permission(target_id, group_id, permission)
+		at_and_say(user_id, group_id, "OPERATION successful")
+	else:
+		at_and_say(user_id, group_id, "Failed to change PERMISSION: permission denied")
 
 
 
+
+filters = []
+filters.append(guess_checker)
+
+cos_parse_msg = []
+cos_parse_msg.append(parse_guess)
 
 CALL_COMMAND = {}
+CALL_COMMAND['?reg'] = reg
 CALL_COMMAND['?start'] = start
 CALL_COMMAND['?end'] = end
 CALL_COMMAND['?info'] = info
 CALL_COMMAND['?ins'] = insert
 CALL_COMMAND['?srh'] = search
-CALL_COMMAND['?rm'] = rm
+CALL_COMMAND['guess'] = guess
+CALL_COMMAND['?chper'] = chper
+# 禁术 rm 不可使用
+# CALL_COMMAND['?rm'] = rm

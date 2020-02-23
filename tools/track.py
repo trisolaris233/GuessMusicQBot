@@ -8,7 +8,8 @@ import tools.netease as netease
 
 server_db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"data","server.db")
 track_db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"data","tracks.db")
-
+music_path =  os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"music")
+coolq_record_path = "C:\\Users\\Asqura\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\record"
 def init():
     global track_db_path
     print(track_db_path)
@@ -21,8 +22,7 @@ def init():
             ARTIST_NAME TEXT NOT NULL,
             ALBUM_NAME TEXT NOT NULL,
             DURATION_TIME INT NOT NULL,
-            TRACK_ID INT NOT NULL,
-            DOWNLOAD_URL TEXT NOT NULL
+            TRACK_ID INT NOT NULL
         );''')
     except Exception as e:
         print(e)
@@ -123,11 +123,10 @@ def import_playlist(id, user_id=0, group_id=0, explain=''):
         album_name = track['al']['name']
         duration_time = track['dt']
         track_id = track['id']
-        download_url=netease.get_download_url(track_id)
         c.execute('''INSERT INTO TRACKS(
-        NAME,ARTIST_NAME,ALBUM_NAME,DURATION_TIME,TRACK_ID,DOWNLOAD_URL)
+        NAME,ARTIST_NAME,ALBUM_NAME,DURATION_TIME,TRACK_ID)
 
-        VALUES(?,?,?,?,?,?)''',(name,artist_name,album_name,duration_time,track_id,download_url ))
+        VALUES(?,?,?,?,?)''',(name,artist_name,album_name,duration_time,track_id))
     conn.commit()
     update_operation(0, max_id + 1, operation_range, user_id, group_id, explain, id)
 
@@ -137,6 +136,9 @@ def import_playlist(id, user_id=0, group_id=0, explain=''):
 
     return (max_id + 1, len(tracks))
 
+
+def search_song_with_id_(start_id, end_id=-1, user_id=0, group_id=0):
+    pass
 
 def remove_track_with_id(start_id, end_id=-1, user_id=0, group_id=0):
     res = search_song_with_id(start_id, end_id, user_id, group_id)
@@ -228,9 +230,9 @@ def import_song(id, user_id =0, group_id=0, explain=''):
     max_id = get_current_max_id ()
 
     c.execute('''INSERT INTO TRACKS(
-        NAME, ARTIST_NAME,ALBUM_NAME,DURATION_TIME,TRACK_ID,DOWNLOAD_URL
-        ) VALUES(?,?,?,?,?,?);''',
-        (obj.name, obj.artist_name, obj.album_name, obj.duration_time, obj.track_id, obj.download_url))
+        NAME, ARTIST_NAME,ALBUM_NAME,DURATION_TIME,TRACK_ID
+        ) VALUES(?,?,?,?,?);''',
+        (obj.name, obj.artist_name, obj.album_name, obj.duration_time, obj.track_id))
     conn.commit()
     update_operation(0, max_id + 1, 1, user_id, group_id, explain, id)
 

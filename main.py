@@ -7,21 +7,21 @@ import tools.config as config
 import tools.plugins as plugins
 
 def init_database():
-    print(track.server_db_path)
+    track.init()
     conn = sqlite3.connect(track.server_db_path)
 
 
     cursor = conn.cursor()
 
     try:
-        cursor.execute('''CREATE TABLE USERSINFO(
-            ID INTEGER PRIMARY KEY AUTOINCREMENT,
-            USER_ID INT NOT NULL,
-            GROUP_ID INT NOT NULL,
-            PERMISSION INT NOT NULL,
-            GAME_PLAYED INT NOT NULL,
-            WINS INT NOT NULL
-            );''')
+        cursor.execute("CREATE TABLE USERSINFO(\
+            ID INTEGER PRIMARY KEY AUTOINCREMENT,\
+            USER_ID INT NOT NULL,\
+            GROUP_ID INT NOT NULL,\
+            PERMISSION INT NOT NULL,\
+            GAME_PLAYED INT NOT NULL,\
+            WINS INT NOT NULL\
+            );")
     except:
         pass
 
@@ -32,16 +32,23 @@ def init_database():
     # 但是进行时的游戏可以在不同的群保持独立
     # 用track_id来保存歌曲信息
     try:
-        cursor.execute('''CREATE TABLE GAMEDATA(
-            ID INTEGER PRIMARY KEY AUTOINCREMENT,
-            STATUS INT NOT NULL,
-            GROUP_ID INT NOT NULL,
-            MODE INT NOT NULL,
-            TRACK_ID INT,
-            MEMBERS TEXT,
-            WINNER_ID INT,
-            START_TIME DATE NOT NULL
-            );''')
+        cursor.execute("CREATE TABLE GAMEDATA(\
+            ID INTEGER PRIMARY KEY AUTOINCREMENT,\
+            STATUS INT NOT NULL,\
+            GROUP_ID INT NOT NULL,\
+            MODE INT NOT NULL,\
+            TRACK_ID INT,\
+            MEMBERS TEXT,\
+            WINNER_ID INT,\
+            START_TIME DATE NOT NULL\
+            );")
+    except:
+        pass
+
+    try:
+        cursor.execute("CREATE TABLE GLOBAL(\
+            CURSOR_RANGE INT\
+            );")
     except:
         pass
 
@@ -77,9 +84,17 @@ def parse_msg(msg):
 def treat_group_msg(post_msg):
     # 获得三个最主要字段
     msg = post_msg['message']
+    res = []
 
-    res = parse_msg(msg)
-    
+    for f in config.filters:
+        r = f(msg)
+        if r != -1:
+            res = config.cos_parse_msg[r](msg)
+            break
+    else:
+        res = parse_msg(msg)
+    print(res)
+
     try:
         config.CALL_COMMAND[res[0]](res[1], post_msg)
     except KeyError as e:

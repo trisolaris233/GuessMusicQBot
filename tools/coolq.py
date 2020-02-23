@@ -4,10 +4,6 @@ import shutil
 
 
 def send_group_voice_msg(groupid, filename, coolq_record_dir):
-    basename = os.path.basename(filename)
-    basename_without_extension = basename.split('.')[0]
-    shutil.copyfile(filename, coolq_record_dir + "{}.mp3".format(basename_without_extension))
-
     playload = {
       'group_id':"{}".format(groupid),
       'message':"[CQ:record,file={}]".format(filename),
