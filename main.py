@@ -40,7 +40,8 @@ def init_database():
             TRACK_ID INT,\
             MEMBERS TEXT,\
             WINNER_ID INT,\
-            START_TIME DATE NOT NULL\
+            START_TIME DATE NOT NULL,\
+            LYRICS_RESERVE TEXT,\
             );")
     except:
         pass
@@ -93,7 +94,6 @@ def treat_group_msg(post_msg):
             break
     else:
         res = parse_msg(msg)
-    print(res)
 
     try:
         config.CALL_COMMAND[res[0]](res[1], post_msg)

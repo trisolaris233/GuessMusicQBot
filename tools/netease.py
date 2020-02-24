@@ -9,13 +9,18 @@ import re
 music_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "music")
 
 class Track:
-    def __init__(self, track_id, name, artist_name, album_name, duration_time):
+    def __init__(self, track_id, name, artist_name, album_name, duration_time, status, lyrics):
         self.track_id = track_id
         self.name = name
         self.artist_name = artist_name
         self.album_name = album_name
         self.duration_time = duration_time
+        self.status = status
+        self.lyrics = lyrics
 
+class Lyrics:
+    def __init__(self):
+        self.lrc = []
 
 
 # 传入歌单url或者歌曲url 返回对应的id
@@ -34,6 +39,17 @@ def parse_netease_share_url(url):
 
     return (0,)
 
+def get_lyrics(id):
+    try:
+        res = requests.get("https://v1.hitokoto.cn/nm/lyric/{}".format(id))
+        res_data = json.loads(res.text)
+        data = res_data['lrc']['lyric']
+
+        return data
+    except:
+        return "no lyrics"
+        pass
+
 def get_detail(id):
     try:
         res = requests.get("https://v1.hitokoto.cn/nm/detail/{}".format(id))
@@ -45,7 +61,7 @@ def get_detail(id):
         duration_time = data['dt']
         artist_name = ','.join([artist['name'] for artist in data['ar']])
 
-        return Track(track_id,name,artist_name,album_name,duration_time)
+        return Track(track_id,name,artist_name,album_name,duration_time, 1,get_lyrics(id))
     except Exception as e:
         print(e)
         return None

@@ -5,11 +5,14 @@ import sys
 import time
 from pydub import AudioSegment
 import tools.netease as netease
+from tools.netease import get_lyrics
 
 server_db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"data","server.db")
 track_db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"data","tracks.db")
 music_path =  os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"music")
 coolq_record_path = "C:\\Users\\Asqura\\Downloads\\CQP-xiaoi\\酷Q Pro\\data\\record"
+
+
 def init():
     global track_db_path
     print(track_db_path)
@@ -22,7 +25,9 @@ def init():
             ARTIST_NAME TEXT NOT NULL,
             ALBUM_NAME TEXT NOT NULL,
             DURATION_TIME INT NOT NULL,
-            TRACK_ID INT NOT NULL
+            TRACK_ID INT NOT NULL,
+            STATUS INT NOT NULL,
+            LYRICS TEXT NOT NULL
         );''')
     except Exception as e:
         print(e)
@@ -61,6 +66,8 @@ def init():
 def download_music(download_url, filename):
     try:
         music = requests.get(download_url)
+        if music == "failed":
+            return 0
         with open(filename, "wb") as f:
             f.write(music.content)
             f.close()
@@ -107,7 +114,26 @@ def update_operation(operation, id_start, operation_range, user_id=0, group_id=0
     conn.commit()
     conn.close()
 
+def import_song(id, user_id =0, group_id=0, explain=''):
+    obj = netease.get_detail(id)
+    if not obj:
+        return 0
 
+    conn = sqlite3.connect(track_db_path)
+    c = conn.cursor();
+    max_id = get_current_max_id ()
+
+    c.execute('''INSERT INTO TRACKS(
+        NAME, ARTIST_NAME,ALBUM_NAME,DURATION_TIME,TRACK_ID, STATUS, LYRICS
+        ) VALUES(?,?,?,?,?,?,?);''',
+        (obj.name, obj.artist_name, obj.album_name, obj.duration_time, obj.track_id, 1, get_lyrics(id)))
+    conn.commit()
+    update_operation(0, max_id + 1, 1, user_id, group_id, explain, id)
+
+    conn.commit()
+    conn.close()
+
+    return (max_id + 1,1)
 
 def import_playlist(id, user_id=0, group_id=0, explain=''):
     conn = sqlite3.connect(track_db_path)
@@ -124,9 +150,9 @@ def import_playlist(id, user_id=0, group_id=0, explain=''):
         duration_time = track['dt']
         track_id = track['id']
         c.execute('''INSERT INTO TRACKS(
-        NAME,ARTIST_NAME,ALBUM_NAME,DURATION_TIME,TRACK_ID)
+        NAME,ARTIST_NAME,ALBUM_NAME,DURATION_TIME,TRACK_ID, STATUS, LYRICS)
 
-        VALUES(?,?,?,?,?)''',(name,artist_name,album_name,duration_time,track_id))
+        VALUES(?,?,?,?,?,?,?)''',(name,artist_name,album_name,duration_time,track_id,1,get_lyrics(track_id)))
     conn.commit()
     update_operation(0, max_id + 1, operation_range, user_id, group_id, explain, id)
 
@@ -218,28 +244,6 @@ def output_track_list(list_of_tracks):
         for track in list_of_tracks:
             msg += '{} -'.format(track[0]) + track[1] + ' - {}\n'.format(track[2])
     return msg
-
-
-def import_song(id, user_id =0, group_id=0, explain=''):
-    obj = netease.get_detail(id)
-    if not obj:
-        return 0
-
-    conn = sqlite3.connect(track_db_path)
-    c = conn.cursor();
-    max_id = get_current_max_id ()
-
-    c.execute('''INSERT INTO TRACKS(
-        NAME, ARTIST_NAME,ALBUM_NAME,DURATION_TIME,TRACK_ID
-        ) VALUES(?,?,?,?,?);''',
-        (obj.name, obj.artist_name, obj.album_name, obj.duration_time, obj.track_id))
-    conn.commit()
-    update_operation(0, max_id + 1, 1, user_id, group_id, explain, id)
-
-    conn.commit()
-    conn.close()
-
-    return (max_id + 1,1)
 
 
 def import_from_url(url, user_id=0,group_id=0, explain='' ):
